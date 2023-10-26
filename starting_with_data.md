@@ -2,13 +2,7 @@ Question 1:
 
 SQL Queries:
 ```SQL
-SELECT 	* 
-FROM 	all_sessions
-WHERE 	transactions IS NOT NULL OR --81 rows
-		transactionrevenue IS NOT NULL OR --81 rows
-		totaltransactionrevenue IS NOT NULL --81 rows 
-		
-SELECT * FROM all_sessions WHERE itemquantity IS NOT NULL
+
 
 --CLEANING FOR SQL PROJECT QUESTION 1:
 
