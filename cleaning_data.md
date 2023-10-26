@@ -69,6 +69,17 @@ WHERE	transactionid IS NOT NULL
 GROUP BY transactionid
 HAVING COUNT(*) > 1
 
+
+--Exploring the duplicated records.
+--it is duplicated, the two records have the same visitid and fullvisitorid but different transaction ids 
+--and product skus so  think the primary key is probably a composite key. Since a primary key cannot be NUL,
+--it probably a combination of fullvisitorid, visitid, and productsku (but maybe transactionid)
+SELECT 	*
+FROM	transactions
+WHERE	fullvisitorid = '3764227345226401562' AND
+		visitid = '1490046065'
+
+
 --5. FINDING THAT ONLY TOTALTRANSACTIONREVENUE is necessary for the output
 SELECT 	totaltransactionrevenue, --totaltransactionrevenue = transactionrevenue.   
 		transactionrevenue		 --transactionrevenue doesn't need to be in the answer's output
