@@ -21,8 +21,7 @@ UPDATE v_all_sessions --This divides all the pricing data by 1M thanks to the hi
 SET productprice = (productprice / 1000000.0)::NUMERIC (10,2),
 	totaltransactionrevenue = (totaltransactionrevenue / 1000000.0)::NUMERIC (10,2),
 	productrevenue = (productrevenue / 1000000.0)::NUMERIC (10,2),
-	transactionrevenue = (transactionrevenue / 1000000.0)::NUMERIC (10,2);
-SELECT * FROM v_all_sessions --check to make sure it worked as expected ```
+	transactionrevenue = (transactionrevenue / 1000000.0)::NUMERIC (10,2);```
 
 ```SQL
 --Add missing product revenue when possible:
