@@ -1,12 +1,143 @@
 What issues will you address by cleaning the data?
-
-
+I have been working on the project by cleaning views and temp tables rather than cleaning the db as it is so I will add all my cleaning queries here sorted by question but I will also have it in the question query area.
+My project is not complete because of MAJOR technical issues that were well beyond my control. Because of this I do not have time to format the md files. 
 
 
 
 Queries:
+
+<QUESTION 1:> 
+```SQL
+--Creating a view to not effect the raw db
+DROP VIEW IF EXISTS v_all_sessions;
+CREATE VIEW v_all_sessions AS ( --This ill be the copy I work on so I don't change the original db
+	SELECT 	*
+	FROM	all_sessions
+		);```
+```SQL
+--ALL_SESSIONS TABLE:
+--1. Make the prices in the proper format
+UPDATE v_all_sessions --This divides all the pricing data by 1M thanks to the hint
+SET productprice = (productprice / 1000000.0)::NUMERIC (10,2),
+	totaltransactionrevenue = (totaltransactionrevenue / 1000000.0)::NUMERIC (10,2),
+	productrevenue = (productrevenue / 1000000.0)::NUMERIC (10,2),
+	transactionrevenue = (transactionrevenue / 1000000.0)::NUMERIC (10,2);
+SELECT * FROM v_all_sessions --check to make sure it worked as expected ```
+
+```SQL
+--Add missing product revenue when possible:
+UPDATE 	v_all_sessions
+SET	productrevenue = (productquantity * productprice)::NUMERIC (10, 2);```
+
+```SQL
+--0 padding on right to make fullvisitorid the same format (19 chars)
+UPDATE v_all_sessions
+SET fullvisitorid = RPAD(fullvisitorid, 19, '0');```
+
+```SQL
+--update to make the 'GGOE%' product skus into the 14 char format when they have the GGOE beginning
+UPDATE v_all_sessions 
+SET productsku = 
+		CASE WHEN productsku LIKE 'GGOE%' THEN RPAD(productsku, 14, '0')
+		ELSE productsku END;```
+
+```SQL
+--3.Add NULLS where data is '(not set)' or 'not available in demo dataset'
+UPDATE 	v_all_sessions 
+SET 	country =  
+		CASE WHEN country LIKE '(not set)' THEN NULL 
+		ELSE country END,
+	city = 
+		CASE WHEN city IN ('(not set)', 'not available in demo dataset') THEN NULL
+		ELSE city END,
+	productvariant = 
+		CASE WHEN productvariant LIKE '(not set)' THEN NULL
+		ELSE productvariant END;```
+```SQL
+--Changed the 'v2' column headers to match other tables
+ALTER VIEW v_all_sessions
+RENAME COLUMN v2productname TO productname;
+
+ALTER VIEW v_all_sessions
+RENAME COLUMN v2productcategory TO productcategory;```
+
+```SQL
+--Found 'true' duplicates and removed them from the view/table
+SELECT	COUNT(*) AS count_productsku, --5 rows are 'true duplicates'
+		productsku,
+		productname,
+		visitid,
+		fullvisitorid
+FROM	v_all_sessions
+GROUP 	BY  productsku, productname, visitid, fullvisitorid
+HAVING	COUNT(*) > 1
+
+DELETE FROM v_all_sessions --removed the true duplicates from a_s_products_clean1
+WHERE visitid IN
+    (SELECT visitid
+    FROM 
+        (SELECT visitid,
+         ROW_NUMBER() OVER( 
+			 PARTITION BY productsku, productname, visitid, fullvisitorid
+        	ORDER BY  visitid ) AS row_num
+        FROM v_all_sessions ) vas
+        WHERE vas.row_num > 1 );```
+
+<QUESTION 2:>
+Since the cleaning for question 1 was done on a view, it has been completed for question 2.
+
+<ANALYTICS TABLE>
+----------------------
+I created a View of the analytics table to not affect the raw db.
+I also created a temp table with just the distinct elements of the analytics table since it is so large and cumbersome to use.
+```SQL
+DROP IF EXISTS v_analytics;
+CREATE VIEW v_analytics AS (
+		SELECT 	*
+		FROM	analytics
+		)
+
+DROP TABLE IF EXISTS distinct_analytics;
+CREATE TEMP TABLE distinct_analytics AS (
+		SELECT DISTINCT	* 
+		FROM	analytics
+	);```
+
+Below is similar cleaning to question 1's:
+```SQL
+--make sure fullvisitorid is formatted correctly
+UPDATE distinct_analytics
+SET fullvisitorid = RPAD(fullvisitorid, 19, '0');
+
+UPDATE distinct_analytics --This divides all the pricing data by 1M thanks to the hint
+SET unit_price = (unit_price / 1000000.0)::NUMERIC (10,2),
+	revenue = (revenue / 1000000.0)::NUMERIC (10,2);
+____________________________________________________
+<QUESTION 2: PRODUCTS TABLE>	
+I changed the name of columns to match other tables
+```SQL
+ALTER TABLE products
+RENAME COLUMN sku to productsku;
+
+ALTER TABLE products
+RENAME COLUMN name to productname;
+
+ALTER TABLE products
+RENAME COLUMN orderedquantity TO total_ordered;
+```
+This confirms that every productname and productsku pair are unique in the table
+```SQL
+SELECT 	COUNT(*) AS count_products, --shows that every productsku and productname pair are unique 
+		productsku, productname
+FROM	products
+GROUP	BY productsku, productname
+HAVING	COUNT(*) > 1
+```
+
+
 Below, provide the SQL queries you used to clean your data.
---CLEANING FOR SQL PROJECT QUESTION 1:
+--CLEANING FOR SQL
+PROJECT QUESTION 1:
 
 ```SQL
 --1. This query creates a temporary table with the useful data from the all_sessions tables
