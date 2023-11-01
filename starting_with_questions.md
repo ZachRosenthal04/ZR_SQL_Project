@@ -72,9 +72,147 @@ ORDER	BY SUM(totaltransactionrevenue) DESC```
 
 
 SQL Queries:
+```sql
+--CLEANINGTHE ALL_SESSIONS TABLE:
+--1. Create a Temp Table with the columns from the all_sessions view which are pertinent 
+--to answer the product category pattern question 
+DROP TABLE IF EXISTS as_product_categories;
+CREATE TEMP TABLE as_product_categories AS (
+	SELECT	*
+	FROM	v_all_sessions
+	);
+```
+```sql
+--Seeing that productvariant isn't significant to study
+SELECT 	* 
+FROM 	as_product_categories  
+WHERE 	productvariant IS NOT NULL  --39/15,124 rows
+--791/15134 rows (5.22% of the table) where product category is NULL or product variant isn't NULL.
+-- For this reason, I feel these rows can be removed from the analysis. 
 
+ALTER TABLE as_product_categories
+DROP COLUMN productvariant
+```
+```sql
+--Creating a temp table to further transform and analyze the category data
+DROP TABLE IF EXISTS as_p_productcategories;
+CREATE TEMP TABLE as_p_productcategories AS (
+	SELECT	aspc.fullvisitorid, aspc.visitid, 
+			aspc.country, aspc.city, 
+			aspc.date,
+			aspc.productsku AS productsku,  
+			aspc.productname AS as_productname, 
+			vp.total_ordered,
+			aspc.productcategory,
+			aspc.pagetitle AS page_title
+	FROM	as_product_categories aspc
+	FULL JOIN	v_products vp
+	ON		aspc.productsku = vp.productsku
+	WHERE	NOT(vp.total_ordered IS NULL AND
+			   	aspc.city IS NULL AND 
+				aspc.country IS NULL)
+					);
+```
+```sql
+--Page title is a much better represenation of the product category so that will be used 
+--to update the productcategory column
 
+SELECT 	as_productname,
+		productcategory, --No instances where their info does not allign
+		page_title
+FROM	as_p_productcategories
+WHERE	(productcategory IS NOT NULL AND
+		page_title IS NULL) OR 
+		(productcategory IS NULL AND 
+		 page_title IS NOT NULL);
+```
+```sql
+--CLEANING THE PRODUCT CATEGORY COLUMN:
+UPDATE as_p_productcategories
+SET productcategory = CASE WHEN productcategory LIKE '(not set)' THEN NULL
+						ELSE page_title END;
 
+UPDATE as_p_productcategories
+SET 	page_title = CASE WHEN page_title LIKE 'Store search results' THEN NULL
+						ELSE page_title END;
+						
+UPDATE as_p_productcategories
+SET		productcategory = CASE WHEN productcategory LIKE 'Pet%' THEN 'Pet'
+							ELSE productcategory END;
+UPDATE as_p_productcategories
+SET		productcategory = CASE 
+							WHEN productcategory LIKE 'Drinkware%' THEN 'Drinkware'
+							WHEN productcategory LIKE '%Drinkware%' THEN 'Drinkware'
+							ELSE productcategory END;
+UPDATE as_p_productcategories
+SET		productcategory = CASE 
+							WHEN productcategory LIKE 'Bag%' THEN 'Bags'
+							WHEN productcategory LIKE '%Bag%' THEN 'Bags'
+							ELSE productcategory END;
+						
+SELECT 	 	COUNT(*), --Looking at all the Apparel Categories
+			productcategory
+FROM 	 	as_p_productcategories
+WHERE		productcategory LIKE '%Apparel%'
+GROUP BY	productcategory
+
+UPDATE as_p_productcategories
+SET		productcategory = CASE
+							WHEN productcategory LIKE 'Apparel%' THEN 'Apparel'
+							WHEN productcategory LIKE 'Infant%' THEN 'Kid''s Apparel'
+							WHEN productcategory LIKE '%Infant%' THEN 'Kid''s Apparel'
+							WHEN productcategory LIKE 'Kids%' THEN 'Kid''s Apparel'
+							WHEN productcategory LIKE '%Kid''s%' THEN 'Kid''s Apparel'
+							WHEN productcategory LIKE 'Men''s%' THEN 'Men''s Apparel'
+							WHEN productcategory LIKE '%Men''s%' THEN 'Men''s Apparel'
+							WHEN productcategory LIKE 'Toddler%' THEN 'Kid''s Apparel'
+							WHEN productcategory LIKE 'Women%' THEN 'Women''s Apparel'
+							WHEN productcategory LIKE '%Women''s' THEN 'Women''s Apparel'
+							WHEN productcategory LIKE 'Youth%' THEN 'Kid''s Apparel'
+							WHEN productcategory LIKE '%Youth''s' THEN 'Kid''s Apparel'
+							WHEN productcategory LIKE 'Headgear%' THEN 'Headgear'
+							ELSE productcategory END;
+							
+--Focusing on only cleaning categories with meaningful representation
+SELECT 	COUNT(*), productcategory 
+FROM	as_p_productcategories
+WHERE	productcategory IS NOT NULL AND
+		LENGTH(productcategory) > 15
+GROUP 	BY productcategory 
+HAVING COUNT(*) > 25
+
+UPDATE as_p_productcategories
+SET productcategory = CASE
+			WHEN productcategory LIKE '%Electronics%' THEN 'Electronics'
+			WHEN productcategory LIKE 'Electronics%' THEN 'Electronics'
+			WHEN productcategory LIKE 'Fun%' THEN 'Accessories'
+			WHEN productcategory LIKE 'Stickers' THEN 'Accessories'
+			WHEN productcategory LIKE 'Office%' THEN 'Office'
+			WHEN productcategory LIKE '%Office%' THEN 'Office'
+			WHEN productcategory LIKE 'Sports & Fitness%'THEN 'Lifestyle'
+			WHEN productcategory LIKE 'Housewares%' THEN 'Housewares'
+			WHEN productcategory LIKE 'Accessories%' THEN 'Accessories'
+			ELSE productcategory END;
+
+SELECT 	as_productname,
+	productcategory, --No instances where their info does not allign
+	page_title
+FROM	as_p_productcategories
+WHERE	productcategory LIKE 'YouTube%'
+
+UPDATE as_p_productcategories
+SET productcategory = CASE 
+			WHEN productcategory = 'YouTube' THEN 'YouTube Merch'
+			WHEN productcategory LIKE 'YouTube%%' THEN 'YouTube Merch'
+			WHEN productcategory = 'Google' THEN 'Google Merch'
+			WHEN productcategory LIKE 'Google%' THEN 'Google Merch'
+			WHEN productcategory LIKE '%Google%' THEN 'Google Merch'
+			ELSE productcategory END;
+						
+UPDATE as_p_productcategories
+SET productcategory = CASE WHEN productcategory LIKE 'Store search results' THEN NULL
+						ELSE productcategory END;
+```
 Answer:
 
 
