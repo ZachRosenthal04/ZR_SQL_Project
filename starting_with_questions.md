@@ -131,6 +131,7 @@ ORDER BY 	country, total_ordered DESC
 ---------------------------------------------
 ### Answer:
 ```sql
+
 SELECT	country, productname,
 		SUM(total_ordered) AS country_total_ordered
 FROM 	country_city_top_sellers	
@@ -146,8 +147,11 @@ The interesting thing is that much like the real world, the US had the most tota
 **Question 5: Can we summarize the impact of revenue generated from each city/country?**
 
 SQL Queries:
-The answer can be derived from the same table as Question 4.
+
 ```sql
+--The answer can be derived from the same table as Question 4.
+
+
 DROP TABLE IF EXISTS country_city_top_sellers;
 CREATE TEMP TABLE country_city_top_sellers AS (
 SELECT DISTINCT 
@@ -179,8 +183,21 @@ ORDER BY 	country, total_ordered DESC
 ```
 ### Answer:
 
+```sql
 
+--Question 5: 
+--Can we summarize the impact of revenue generated from each city/country?
 
+SELECT		country,
+		SUM(totaltransactionrevenue) AS total_revenue
+FROM		country_city_top_sellers ccts
+GROUP BY 	country
+ORDER BY	SUM(totaltransactionrevenue) DESC
+
+```
+There were 2 South American countries (El Salvador and Paraguay) had the least revenue
+And interestingly, 3/5 top revenue generating companies were from North America. 
+The United States in first, Canada in third, and Mexico in 5th. 
 
 
 
