@@ -98,11 +98,47 @@ Answer:
 
 
 SQL Queries:
-
-
-
-Answer:
-
+```sql
+DROP TABLE IF EXISTS country_city_top_sellers;
+CREATE TEMP TABLE country_city_top_sellers AS (
+SELECT DISTINCT 
+		acq.country,
+		acq.city,
+		acq.productsku, 
+		acq.productname,
+		acq.total_ordered,
+		acq.productcategory, 
+		acq.totaltransactionrevenue
+FROM 
+   	 	as_clean_q4 acq 
+JOIN --Joining on a table I created (with 3 columns - country, city, MAX totalrevenue)
+    (SELECT 	country, city, 
+        		MAX(totaltransactionrevenue) AS max_revenue
+    	FROM 	as_clean_q4
+    	GROUP 	BY country, city) acq_b 
+ON --Both columns need to match to satisfy the join constraints
+    acq.country = acq_b.country AND
+	acq.city = acq_b.city AND 
+	acq.totaltransactionrevenue = acq_b.max_revenue 
+	
+WHERE 
+    		NOT(acq.city IS NULL OR 
+    		acq.country IS NULL) AND
+    		acq.total_ordered > 0 
+ORDER BY 	country, total_ordered DESC
+					);
+```
+---------------------------------------------
+### Answer:
+```sql
+SELECT	country, productname,
+		SUM(total_ordered) AS country_total_ordered
+FROM 	country_city_top_sellers	
+GROUP	BY country, productname 
+ORDER	BY SUM(total_ordered) DESC
+LIMIT 10
+```
+The interesting thing is that much like the real world, the US had the most total orders out of 217 countries and their most purchased product is security systems.
 
 
 
@@ -110,10 +146,38 @@ Answer:
 **Question 5: Can we summarize the impact of revenue generated from each city/country?**
 
 SQL Queries:
-
-
-
-Answer:
+The answer can be derived from the same table as Question 4.
+```sql
+DROP TABLE IF EXISTS country_city_top_sellers;
+CREATE TEMP TABLE country_city_top_sellers AS (
+SELECT DISTINCT 
+		acq.country,
+		acq.city,
+		acq.productsku, 
+		acq.productname,
+		acq.total_ordered,
+		acq.productcategory, 
+		acq.totaltransactionrevenue
+FROM 
+   	 	as_clean_q4 acq 
+JOIN --Joining on a table I created (with 3 columns - country, city, MAX totalrevenue)
+    (SELECT 	country, city, 
+        		MAX(totaltransactionrevenue) AS max_revenue
+    	FROM 	as_clean_q4
+    	GROUP 	BY country, city) acq_b 
+ON --Both columns need to match to satisfy the join constraints
+    acq.country = acq_b.country AND
+	acq.city = acq_b.city AND 
+	acq.totaltransactionrevenue = acq_b.max_revenue 
+	
+WHERE 
+    		NOT(acq.city IS NULL OR 
+    		acq.country IS NULL) AND
+    		acq.total_ordered > 0 
+ORDER BY 	country, total_ordered DESC
+				);
+```
+### Answer:
 
 
 
