@@ -64,7 +64,7 @@ The top 5 countries that ordered the most men's apparel are: USA, India, Canada,
 The bottom 5 countries that ordered the least men's apparel are: Paraguay, Serbia, Haiti, Cambodia, and Puerto Rico. 
 
 
-Question 3: Repeat for Women's Apparel and Childrens
+Question 3: Which countries ordered the most and least Women's Apparel
 
 SQL Queries:
 ```sql
@@ -103,12 +103,45 @@ The top 5 countries with the most orders for women's apparel are: USA, Canada, U
 The 5 countries that ordered the least women's apparel are: Belarus, Dominican, Republic, Macedonia, Serbia, Honduras. 
 
 
-Question 4: 
+Question 4: Which countries ordered the most and least Kid's Apparel?
 
 SQL Queries:
+```sql
 
+WITH most_ordered_kids_apparel_CTE AS (
+    SELECT	country,
+        	productcategory,
+        	SUM(total_ordered) AS most_total_kids_apparel_ordered
+    FROM 	vas_productcategories
+    WHERE	total_ordered > 0 AND
+        	productcategory = 'Kid''s Apparel'
+    GROUP BY country, productcategory
+    ORDER BY most_total_kids_apparel_ordered DESC
+    LIMIT 5
+	),
+least_ordered_kids_apparel_CTE AS (
+    SELECT	country,
+        	productcategory,
+        	SUM(total_ordered) AS least_total_kids_apparel_ordered
+    FROM 	vas_productcategories
+    WHERE	total_ordered > 0 AND
+        	productcategory = 'Kid''s Apparel'
+    GROUP BY country, productcategory
+    ORDER BY least_total_kids_apparel_ordered ASC
+    LIMIT 5
+	)
+SELECT	mto.country,
+    	mto.most_total_kids_apparel_ordered,
+		lto.country,
+    	lto.least_total_kids_apparel_ordered
+FROM 	most_ordered_kids_apparel_CTE mto
+FULL OUTER JOIN least_ordered_kids_apparel_CTE lto
+ON 		mto.country = lto.country AND mto.productcategory = lto.productcategory
+
+```
 Answer:
-
+The US dominates the world in their kid's apparel ordered by a very large margin. They ordered approximately 200% more than the next second placed top ordered Canada. The top orderers are: United States, Canada, Singapore, India, Australia.
+The bottom 5 kid's apparel ordering countries all ordered similar total quantities. They are: Indonesia, Greece, Russia, Sweden, Algeria.
 
 
 Question 5: 
