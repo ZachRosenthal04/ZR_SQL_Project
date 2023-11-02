@@ -80,6 +80,7 @@ Answer:
 
 SQL Queries:
 ```sql
+--CLEANING THE PRODUCT CATEGORY COLUMN for Question 3, 4, and 5:
 DROP TABLE IF EXISTS vas_productcategories;
 CREATE TEMP TABLE vas_productcategories AS (
 	SELECT	vas.fullvisitorid,
@@ -100,8 +101,6 @@ CREATE TEMP TABLE vas_productcategories AS (
 			vas.country IS NULL)
 					);
 
-```
-```sql
 --Page title is a much better represenation of the product category so that will be used 
 --to update the productcategory column
 
@@ -113,30 +112,32 @@ WHERE	(productcategory IS NOT NULL AND
 	page_title IS NULL) OR 
 	(productcategory IS NULL AND 
 	 page_title IS NOT NULL);
-```
-```sql
---CLEANING THE PRODUCT CATEGORY COLUMN:
+
+
 UPDATE as_p_productcategories
-SET productcategory = CASE WHEN productcategory LIKE '(not set)' THEN NULL
+SET productcategory = CASE
+			WHEN productcategory LIKE '(not set)' THEN NULL
 						ELSE page_title END;
 
 UPDATE as_p_productcategories
-SET 	page_title = CASE WHEN page_title LIKE 'Store search results' THEN NULL
+SET 	page_title = CASE
+			WHEN page_title LIKE 'Store search results' THEN NULL
 						ELSE page_title END;
 						
 UPDATE as_p_productcategories
-SET		productcategory = CASE WHEN productcategory LIKE 'Pet%' THEN 'Pet'
+SET		productcategory = CASE
+					WHEN productcategory LIKE 'Pet%' THEN 'Pet'
 							ELSE productcategory END;
 UPDATE as_p_productcategories
 SET		productcategory = CASE 
-							WHEN productcategory LIKE 'Drinkware%' THEN 'Drinkware'
-							WHEN productcategory LIKE '%Drinkware%' THEN 'Drinkware'
-							ELSE productcategory END;
+					WHEN productcategory LIKE 'Drinkware%' THEN 'Drinkware'
+					WHEN productcategory LIKE '%Drinkware%' THEN 'Drinkware'
+					ELSE productcategory END;
 UPDATE as_p_productcategories
 SET		productcategory = CASE 
-							WHEN productcategory LIKE 'Bag%' THEN 'Bags'
-							WHEN productcategory LIKE '%Bag%' THEN 'Bags'
-							ELSE productcategory END;
+					WHEN productcategory LIKE 'Bag%' THEN 'Bags'
+					WHEN productcategory LIKE '%Bag%' THEN 'Bags'
+					ELSE productcategory END;
 						
 SELECT 	 	COUNT(*), --Looking at all the Apparel Categories
 			productcategory
@@ -198,26 +199,29 @@ SET productcategory = CASE
 			ELSE productcategory END;
 						
 UPDATE as_p_productcategories
-SET productcategory = CASE WHEN productcategory LIKE 'Store search results' THEN NULL
+SET productcategory = CASE
+			WHEN productcategory LIKE 'Store search results' THEN NULL
 						ELSE productcategory END;
 ```
 
-Answer:
---This is query shows the total number of products ordered for each country based on product categories.
---The US has the 9/10 products ordered in unique categories.
+### Answer:
+```sql
+--This query shows the total number of products ordered for each country based on product categories.
+
 SELECT	DISTINCT(country),
-		productcategory,
-		SUM(total_ordered) AS total_products_ordered  
+	productcategory,
+	SUM(total_ordered) AS total_products_ordered  
 FROM	vas_productcategories
 WHERE	total_ordered  > 0 AND
-		productcategory IS NOT NULL
-GROUP BY country, productcategory
-ORDER BY total_products_ordered DESC
+	productcategory IS NOT NULL
+GROUP 	BY country, productcategory
+ORDER 	BY total_products_ordered ASC
+LIMIT 	10
+```
+One of the interesting patterns is that the United States has the most products purchased in 9/10 most purchased categories. Another interesting product category element is that none of the 3 apparel categories features in the top 10 categories with the most products purchased. 
 
 
-
-
-**Question 4: What is the top-selling product from each city/country? Can we find any pattern worthy of noting in the products sold?**
+### **Question 4: What is the top-selling product from each city/country? Can we find any pattern worthy of noting in the products sold?**
 
 
 SQL Queries:
