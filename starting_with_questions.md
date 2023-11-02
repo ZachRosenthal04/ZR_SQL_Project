@@ -226,50 +226,72 @@ One of the interesting patterns is that the United States has the most products 
 
 SQL Queries:
 ```sql
-DROP TABLE IF EXISTS country_city_top_sellers;
-CREATE TEMP TABLE country_city_top_sellers AS (
-SELECT DISTINCT 
-		acq.country,
-		acq.city,
-		acq.productsku, 
-		acq.productname,
-		acq.total_ordered,
-		acq.productcategory, 
-		acq.totaltransactionrevenue
-FROM 
-   	 	as_clean_q4 acq 
-JOIN --Joining on a table I created (with 3 columns - country, city, MAX totalrevenue)
-    (SELECT 	country, city, 
-        		MAX(totaltransactionrevenue) AS max_revenue
-    	FROM 	as_clean_q4
-    	GROUP 	BY country, city) acq_b 
-ON --Both columns need to match to satisfy the join constraints
-    acq.country = acq_b.country AND
-	acq.city = acq_b.city AND 
-	acq.totaltransactionrevenue = acq_b.max_revenue 
-	
-WHERE 
-    		NOT(acq.city IS NULL OR 
-    		acq.country IS NULL) AND
-    		acq.total_ordered > 0 
-ORDER BY 	country, total_ordered DESC
-					);
+--QUESTION 4: Top-Selling product (or category) for each city and country
+WITH country_product_quantities_CTE AS (
+	SELECT 	country,
+			productcategory,
+			SUM(total_ordered) AS product_qty_sold,
+			RANK() OVER (
+			PARTITION BY country
+			ORDER BY SUM(total_ordered) DESC) AS rank
+	FROM	vas_productcategories
+	WHERE	productrevenue IS NOT NULL
+	GROUP	BY country, productcategory
+	)
+SELECT	country,
+		productcategory AS top_product,
+		product_qty_sold
+FROM	country_product_quantities_CTE
+WHERE	rank = 1;
 ```
 ---------------------------------------------
 ### Answer:
+For Country:
 ```sql
-
-SELECT	country, productname,
-		SUM(total_ordered) AS country_total_ordered
-FROM 	country_city_top_sellers	
-GROUP	BY country, productname 
-ORDER	BY SUM(total_ordered) DESC
-LIMIT 10
+WITH country_product_quantities_CTE AS (
+	SELECT 	country,
+			productcategory,
+			SUM(total_ordered) AS product_qty_sold,
+			RANK() OVER (
+			PARTITION BY country
+			ORDER BY SUM(total_ordered) DESC) AS rank
+	FROM	vas_productcategories
+	WHERE	productrevenue IS NOT NULL
+	GROUP	BY country, productcategory
+	)
+SELECT	country,
+		productcategory AS top_product,
+		product_qty_sold
+FROM	country_product_quantities_CTE
+WHERE	rank = 1
+ORDER	BY product_qty_sold DESC
+LIMIT 	10;
 ```
-The interesting thing is that much like the real world, the US had the most total orders out of 217 countries and their most purchased product is security systems.
+YouTube Merch was the top-selling category 9/10 of the top-selling countries. The countries were in order from most to least: United States, United Kingdom, India, Germany, Canada, Australia, France, Taiwan, Netherlands, and Italy. 
 
-
-
+For City:
+```sql
+WITH city_product_quantities_CTE AS (
+	SELECT 	city,
+		productcategory,
+		SUM(total_ordered) AS product_qty_sold,
+		RANK() OVER (
+		PARTITION BY city
+		ORDER BY SUM(total_ordered) DESC) AS rank
+	FROM	vas_productcategories
+	WHERE	productrevenue IS NOT NULL AND 
+		city IS NOT NULL
+	GROUP	BY city, productcategory
+	)
+SELECT	city,
+		productcategory AS top_product,
+		product_qty_sold
+FROM	city_product_quantities_CTE
+WHERE	rank = 1
+ORDER	BY product_qty_sold DESC
+LIMIT 	10;
+```
+Conversely, the top 6/10 selling cities are in the United States and 4/5 of the top-selling products for cities are security products. Unsurprisingly, these cities are all in the United States.     
 
 **Question 5: Can we summarize the impact of revenue generated from each city/country?**
 
