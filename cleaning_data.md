@@ -1,6 +1,6 @@
 What issues will you address by cleaning the data?
 
-I will be adjusting the product category column to get more manageable and insightful data. I will make views of all the original tables so that the original db is not adversely affected. I'm checking for true duplicates and getting rid of them and I am making sure that when there are products sold and a price, that product revenue is filled in. From other analysis, I noticed that the products table had more reliable data for the products sold than any other table, so I joined those two and then made a temp table to fill in the totaltransactionrevenue as the product revenue for better analysis. I right-padded 0's in both the fullvisitorid and product sku columns in all the views I made to standardize the format when applicable (i.e when the product SKU was in the 'GGOE%' format.  
+I will be adjusting the product category column to get more manageable and insightful data. I will make views of all the original tables so that the original db is not adversely affected. I'm checking for true duplicates and getting rid of them and I am making sure that when there are products sold and a price, that product revenue is filled in. I right-padded 0's in both the fullvisitorid and product sku columns in all the views I made to standardize the format when applicable (i.e when the product SKU was in the 'GGOE%' format).  
 
 
 
