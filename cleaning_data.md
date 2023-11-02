@@ -6,7 +6,7 @@ My project is not complete because of MAJOR technical issues that were well beyo
 
 Queries:
 
-<QUESTION 1:> 
+### QUESTION 1: 
 ```SQL
 --Creating a view to not effect the raw db
 DROP VIEW IF EXISTS v_all_sessions;
@@ -21,26 +21,22 @@ UPDATE v_all_sessions --This divides all the pricing data by 1M thanks to the hi
 SET productprice = (productprice / 1000000.0)::NUMERIC (10,2),
 	totaltransactionrevenue = (totaltransactionrevenue / 1000000.0)::NUMERIC (10,2),
 	productrevenue = (productrevenue / 1000000.0)::NUMERIC (10,2),
-	transactionrevenue = (transactionrevenue / 1000000.0)::NUMERIC (10,2);```
+	transactionrevenue = (transactionrevenue / 1000000.0)::NUMERIC (10,2);
 
-```SQL
 --Add missing product revenue when possible:
 UPDATE 	v_all_sessions
-SET	productrevenue = (productquantity * productprice)::NUMERIC (10, 2);```
+SET	productrevenue = (productquantity * productprice)::NUMERIC (10, 2);
 
-```SQL
 --0 padding on right to make fullvisitorid the same format (19 chars)
 UPDATE v_all_sessions
-SET fullvisitorid = RPAD(fullvisitorid, 19, '0');```
+SET fullvisitorid = RPAD(fullvisitorid, 19, '0');
 
-```SQL
 --update to make the 'GGOE%' product skus into the 14 char format when they have the GGOE beginning
 UPDATE v_all_sessions 
 SET productsku = 
 		CASE WHEN productsku LIKE 'GGOE%' THEN RPAD(productsku, 14, '0')
-		ELSE productsku END;```
+		ELSE productsku END;
 
-```SQL
 --3.Add NULLS where data is '(not set)' or 'not available in demo dataset'
 UPDATE 	v_all_sessions 
 SET 	country =  
@@ -51,16 +47,15 @@ SET 	country =
 		ELSE city END,
 	productvariant = 
 		CASE WHEN productvariant LIKE '(not set)' THEN NULL
-		ELSE productvariant END;```
-```SQL
+		ELSE productvariant END;
+
 --Changed the 'v2' column headers to match other tables
 ALTER VIEW v_all_sessions
 RENAME COLUMN v2productname TO productname;
 
 ALTER VIEW v_all_sessions
-RENAME COLUMN v2productcategory TO productcategory;```
+RENAME COLUMN v2productcategory TO productcategory;
 
-```SQL
 --Found 'true' duplicates and removed them from the view/table
 SELECT	COUNT(*) AS count_productsku, --5 rows are 'true duplicates'
 		productsku,
@@ -80,12 +75,13 @@ WHERE visitid IN
 			 PARTITION BY productsku, productname, visitid, fullvisitorid
         	ORDER BY  visitid ) AS row_num
         FROM v_all_sessions ) vas
-        WHERE vas.row_num > 1 );```
+        WHERE vas.row_num > 1 );
+```
 
-<QUESTION 2:>
+### QUESTION 2:
 Since the cleaning for question 1 was done on a view, it has been completed for question 2.
 
-<ANALYTICS TABLE>
+\ANALYTICS TABLE
 ----------------------
 I created a View of the analytics table to not affect the raw db.
 I also created a temp table with just the distinct elements of the analytics table since it is so large and cumbersome to use.
@@ -100,9 +96,11 @@ DROP TABLE IF EXISTS distinct_analytics;
 CREATE TEMP TABLE distinct_analytics AS (
 		SELECT DISTINCT	* 
 		FROM	analytics
-	);```
+	);
+```
 
 Below is similar cleaning to question 1's:
+
 ```SQL
 --make sure fullvisitorid is formatted correctly
 UPDATE distinct_analytics
@@ -111,8 +109,9 @@ SET fullvisitorid = RPAD(fullvisitorid, 19, '0');
 UPDATE distinct_analytics --This divides all the pricing data by 1M thanks to the hint
 SET unit_price = (unit_price / 1000000.0)::NUMERIC (10,2),
 	revenue = (revenue / 1000000.0)::NUMERIC (10,2);
+```
 ____________________________________________________
-<QUESTION 2: PRODUCTS TABLE>	
+### QUESTION 2: PRODUCTS TABLE	
 I changed the name of columns to match other tables
 ```SQL
 ALTER TABLE products
@@ -123,9 +122,9 @@ RENAME COLUMN name to productname;
 
 ALTER TABLE products
 RENAME COLUMN orderedquantity TO total_ordered;
-```
-This confirms that every productname and productsku pair are unique in the table
-```SQL
+
+
+```sql
 SELECT 	COUNT(*) AS count_products, --shows that every productsku and productname pair are unique 
 		productsku, productname
 FROM	products
@@ -179,35 +178,12 @@ GROUP BY fullvisitorid,
 		transactionid
 HAVING COUNT(*) > 1
 
---checking individually for sanity:
---full visitor id
-SELECT COUNT(*), fullvisitorid -- fullvisitorid "3764227345226401562" has a duplicate
-FROM	transactions
-GROUP BY fullvisitorid
-HAVING COUNT(*) > 1
-
---visit id:
-SELECT COUNT(*), visitid -- visitid "1490046065" has a duplicate
-FROM	transactions
-GROUP BY visitid
-HAVING COUNT(*) > 1
-
---transaction id:
-SELECT COUNT(*), transactionid -- transactionid has no duplicates except for the 72 NULLs 3 not null
-FROM	transactions
-WHERE	transactionid IS NOT NULL
-GROUP BY transactionid
-HAVING COUNT(*) > 1
 
 
 --Exploring the duplicated records.
 --it is duplicated, the two records have the same visitid and fullvisitorid but different transaction ids 
 --and product skus so  think the primary key is probably a composite key. Since a primary key cannot be NUL,
---it probably a combination of fullvisitorid, visitid, and productsku (but maybe transactionid)
-SELECT 	*
-FROM	transactions
-WHERE	fullvisitorid = '3764227345226401562' AND
-		visitid = '1490046065'
+--it probably a combination of fullvisitorid, visitid
 
 
 --5. FINDING THAT ONLY TOTALTRANSACTIONREVENUE is necessary for the output
@@ -216,7 +192,7 @@ SELECT 	totaltransactionrevenue, --totaltransactionrevenue = transactionrevenue.
 FROM	transactions
 WHERE	totaltransactionrevenue <> transactionrevenue
 
---6.checking if the totaltransaction revenue is valid. 
+--6.checking if the totaltransactionrevenue is valid. 
 --	If the productprice > than totaltransactionrevenue than it isn't valid
 
  --10 rows have invalid totaltransctionrevenues. I then added OR city is null because it doesn't
@@ -224,7 +200,7 @@ WHERE	totaltransactionrevenue <> transactionrevenue
 SELECT	* --output is 32 rows.
 FROM	transactions
 WHERE	productprice > totaltransactionrevenue OR
-		city IS NULL
+	city IS NULL
 --I'm going to try and use this output as a way to filter the main table's 81 rows to get a 
 --table with only valid data to find out the answer to question 1.
 
@@ -246,25 +222,140 @@ FROM	transactions
 WHERE	NOT(productprice > totaltransactionrevenue OR
 		city IS NULL)
 
---8. Creating another temp table with only the good transactions data. good_transactions
+--8. Creating another temp table with only the good transactions data as: good_transactions
 DROP TABLE good_transactions
 CREATE TEMP TABLE good_transactions AS (
 	SELECT	* --expected output 49 rows. transactions - bad_transactions
 	FROM	transactions
-	WHERE	NOT(productprice > totaltransactionrevenue OR
-			city IS NULL)
+	WHERE	NOT(productprice > totaltransactionrevenue
+		OR city IS NULL)
 );
+```
+ 
 
---References
-SELECT	* FROM transactions
-SELECT	* FROM bad_transactions
-SELECT 	* FROM good_transactions 
---///////////////////////////////
+### Cleaning Product Categories for Question 3, 4, 5:
+```sql
 
---QUESTION 1: Which cities and countries have the highest level of transaction revenues on the site?
---Query Showing the US is the country with the highest level of 
-SELECT 	country, city,
-		SUM(totaltransactionrevenue) AS city_transaction_revenue
-FROM good_transactions
-GROUP BY country, city
-ORDER BY SUM(totaltransactionrevenue) DESC; ```
+DROP TABLE IF EXISTS vas_productcategories;
+
+CREATE TEMP TABLE vas_productcategories AS (
+	SELECT	vas.fullvisitorid,
+		vas.visitid, 
+		vas.country,
+		vas.city, 
+		vas.date,
+		vas.productsku AS productsku,  
+		vas.productname AS as_productname, 
+		vp.total_ordered,
+		vas.productcategory,
+		vas.pagetitle AS page_title
+	FROM	v_all_sessions vas
+	FULL JOIN v_products vp
+	ON	vas.productsku = vp.productsku
+	WHERE	NOT(vp.total_ordered IS NULL OR
+			vas.city IS NULL AND 
+			vas.country IS NULL)
+					);
+
+--Page title is a much better represenation of the product category so that will be used 
+--to update the productcategory column
+
+SELECT 	as_productname, --No instances where their info does not align
+	productcategory, 
+	page_title
+FROM	as_p_productcategories
+WHERE	(productcategory IS NOT NULL AND
+	page_title IS NULL) OR 
+	(productcategory IS NULL AND 
+	 page_title IS NOT NULL);
+
+
+UPDATE as_p_productcategories
+SET productcategory = CASE
+			WHEN productcategory LIKE '(not set)' THEN NULL
+						ELSE page_title END;
+
+UPDATE as_p_productcategories
+SET 	page_title = CASE
+			WHEN page_title LIKE 'Store search results' THEN NULL
+						ELSE page_title END;
+						
+UPDATE as_p_productcategories
+SET		productcategory = CASE
+					WHEN productcategory LIKE 'Pet%' THEN 'Pet'
+							ELSE productcategory END;
+UPDATE as_p_productcategories
+SET		productcategory = CASE 
+					WHEN productcategory LIKE 'Drinkware%' THEN 'Drinkware'
+					WHEN productcategory LIKE '%Drinkware%' THEN 'Drinkware'
+					ELSE productcategory END;
+UPDATE as_p_productcategories
+SET		productcategory = CASE 
+					WHEN productcategory LIKE 'Bag%' THEN 'Bags'
+					WHEN productcategory LIKE '%Bag%' THEN 'Bags'
+					ELSE productcategory END;
+						
+SELECT 	 	COUNT(*), --Looking at all the Apparel Categories
+			productcategory
+FROM 	 	as_p_productcategories
+WHERE		productcategory LIKE '%Apparel%'
+GROUP BY	productcategory
+
+UPDATE as_p_productcategories
+SET		productcategory = CASE
+					WHEN productcategory LIKE 'Apparel%' THEN 'Apparel'
+					WHEN productcategory LIKE 'Infant%' THEN 'Kid''s Apparel'
+					WHEN productcategory LIKE '%Infant%' THEN 'Kid''s Apparel'
+					WHEN productcategory LIKE 'Kids%' THEN 'Kid''s Apparel'
+					WHEN productcategory LIKE '%Kid''s%' THEN 'Kid''s Apparel'
+					WHEN productcategory LIKE 'Men''s%' THEN 'Men''s Apparel'
+					WHEN productcategory LIKE '%Men''s%' THEN 'Men''s Apparel'
+					WHEN productcategory LIKE 'Toddler%' THEN 'Kid''s Apparel'
+					WHEN productcategory LIKE 'Women%' THEN 'Women''s Apparel'
+					WHEN productcategory LIKE '%Women''s' THEN 'Women''s Apparel'
+					WHEN productcategory LIKE 'Youth%' THEN 'Kid''s Apparel'
+					WHEN productcategory LIKE '%Youth''s' THEN 'Kid''s Apparel'
+					WHEN productcategory LIKE 'Headgear%' THEN 'Headgear'
+					ELSE productcategory END;
+							
+--Focusing on only cleaning categories with meaningful representation
+SELECT 	COUNT(*), productcategory 
+FROM	as_p_productcategories
+WHERE	productcategory IS NOT NULL AND
+		LENGTH(productcategory) > 15
+GROUP 	BY productcategory 
+HAVING COUNT(*) > 25
+
+UPDATE as_p_productcategories
+SET productcategory = CASE
+			WHEN productcategory LIKE '%Electronics%' THEN 'Electronics'
+			WHEN productcategory LIKE 'Electronics%' THEN 'Electronics'
+			WHEN productcategory LIKE 'Fun%' THEN 'Accessories'
+			WHEN productcategory LIKE 'Stickers' THEN 'Accessories'
+			WHEN productcategory LIKE 'Office%' THEN 'Office'
+			WHEN productcategory LIKE '%Office%' THEN 'Office'
+			WHEN productcategory LIKE 'Sports & Fitness%'THEN 'Lifestyle'
+			WHEN productcategory LIKE 'Housewares%' THEN 'Housewares'
+			WHEN productcategory LIKE 'Accessories%' THEN 'Accessories'
+			ELSE productcategory END;
+
+SELECT 	as_productname,
+	productcategory, --No instances where their info does not allign
+	page_title
+FROM	as_p_productcategories
+WHERE	productcategory LIKE 'YouTube%'
+
+UPDATE as_p_productcategories
+SET productcategory = CASE 
+			WHEN productcategory = 'YouTube' THEN 'YouTube Merch'
+			WHEN productcategory LIKE 'YouTube%%' THEN 'YouTube Merch'
+			WHEN productcategory = 'Google' THEN 'Google Merch'
+			WHEN productcategory LIKE 'Google%' THEN 'Google Merch'
+			WHEN productcategory LIKE '%Google%' THEN 'Google Merch'
+			ELSE productcategory END;
+						
+UPDATE as_p_productcategories
+SET productcategory = CASE
+			WHEN productcategory LIKE 'Store search results' THEN NULL
+			ELSE productcategory END;
+```
