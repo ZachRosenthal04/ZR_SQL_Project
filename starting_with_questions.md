@@ -64,18 +64,22 @@ SELECT 	COALESCE (city, country, 'N/A'),
 		SUM(totaltransactionrevenue)
 FROM	good_transactions
 GROUP	BY country, city
-ORDER	BY SUM(totaltransactionrevenue) DESC```
+ORDER	BY SUM(totaltransactionrevenue) DESC
+```
 
 
 
-**Question 2: What is the average number of products ordered from visitors in each city and country?**
+###**Question 2: What is the average number of products ordered from visitors in each city and country?**
 
+SQL Queries:
+```sql
 
+```
 Answer:
 
 
 
-**Question 3: Is there any pattern in the types (product categories) of products ordered from visitors in each city and country?**
+###**Question 3: Is there any pattern in the types (product categories) of products ordered from visitors in each city and country?**
 
 
 SQL Queries:
