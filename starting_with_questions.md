@@ -71,60 +71,48 @@ ORDER	BY SUM(totaltransactionrevenue) DESC```
 **Question 2: What is the average number of products ordered from visitors in each city and country?**
 
 
+Answer:
+
+
+
+**Question 3: Is there any pattern in the types (product categories) of products ordered from visitors in each city and country?**
+
+
 SQL Queries:
 ```sql
---CLEANINGTHE ALL_SESSIONS TABLE:
---1. Create a Temp Table with the columns from the all_sessions view which are pertinent 
---to answer the product category pattern question 
-DROP TABLE IF EXISTS as_product_categories;
-CREATE TEMP TABLE as_product_categories AS (
-	SELECT	*
-	FROM	v_all_sessions
-	);
-```
-```sql
---Seeing that productvariant isn't significant to study
-SELECT 	* 
-FROM 	as_product_categories  
-WHERE 	productvariant IS NOT NULL  --39/15,124 rows
---791/15134 rows (5.22% of the table) where product category is NULL or product variant isn't NULL.
--- For this reason, I feel these rows can be removed from the analysis. 
-
-ALTER TABLE as_product_categories
-DROP COLUMN productvariant
-```
-```sql
---Creating a temp table to further transform and analyze the category data
-DROP TABLE IF EXISTS as_p_productcategories;
-CREATE TEMP TABLE as_p_productcategories AS (
-	SELECT	aspc.fullvisitorid, aspc.visitid, 
-			aspc.country, aspc.city, 
-			aspc.date,
-			aspc.productsku AS productsku,  
-			aspc.productname AS as_productname, 
-			vp.total_ordered,
-			aspc.productcategory,
-			aspc.pagetitle AS page_title
-	FROM	as_product_categories aspc
-	FULL JOIN	v_products vp
-	ON		aspc.productsku = vp.productsku
-	WHERE	NOT(vp.total_ordered IS NULL AND
-			   	aspc.city IS NULL AND 
-				aspc.country IS NULL)
+DROP TABLE IF EXISTS vas_productcategories;
+CREATE TEMP TABLE vas_productcategories AS (
+	SELECT	vas.fullvisitorid,
+		vas.visitid, 
+		vas.country,
+		vas.city, 
+		vas.date,
+		vas.productsku AS productsku,  
+		vas.productname AS as_productname, 
+		vp.total_ordered,
+		vas.productcategory,
+		vas.pagetitle AS page_title
+	FROM	v_all_sessions vas
+	FULL JOIN v_products vp
+	ON	vas.productsku = vp.productsku
+	WHERE	NOT(vp.total_ordered IS NULL OR
+			vas.city IS NULL AND 
+			vas.country IS NULL)
 					);
+
 ```
 ```sql
 --Page title is a much better represenation of the product category so that will be used 
 --to update the productcategory column
 
-SELECT 	as_productname,
-		productcategory, --No instances where their info does not allign
-		page_title
+SELECT 	as_productname, --No instances where their info does not align
+	productcategory, 
+	page_title
 FROM	as_p_productcategories
 WHERE	(productcategory IS NOT NULL AND
-		page_title IS NULL) OR 
-		(productcategory IS NULL AND 
-		 page_title IS NOT NULL);
+	page_title IS NULL) OR 
+	(productcategory IS NULL AND 
+	 page_title IS NOT NULL);
 ```
 ```sql
 --CLEANING THE PRODUCT CATEGORY COLUMN:
@@ -158,20 +146,20 @@ GROUP BY	productcategory
 
 UPDATE as_p_productcategories
 SET		productcategory = CASE
-							WHEN productcategory LIKE 'Apparel%' THEN 'Apparel'
-							WHEN productcategory LIKE 'Infant%' THEN 'Kid''s Apparel'
-							WHEN productcategory LIKE '%Infant%' THEN 'Kid''s Apparel'
-							WHEN productcategory LIKE 'Kids%' THEN 'Kid''s Apparel'
-							WHEN productcategory LIKE '%Kid''s%' THEN 'Kid''s Apparel'
-							WHEN productcategory LIKE 'Men''s%' THEN 'Men''s Apparel'
-							WHEN productcategory LIKE '%Men''s%' THEN 'Men''s Apparel'
-							WHEN productcategory LIKE 'Toddler%' THEN 'Kid''s Apparel'
-							WHEN productcategory LIKE 'Women%' THEN 'Women''s Apparel'
-							WHEN productcategory LIKE '%Women''s' THEN 'Women''s Apparel'
-							WHEN productcategory LIKE 'Youth%' THEN 'Kid''s Apparel'
-							WHEN productcategory LIKE '%Youth''s' THEN 'Kid''s Apparel'
-							WHEN productcategory LIKE 'Headgear%' THEN 'Headgear'
-							ELSE productcategory END;
+					WHEN productcategory LIKE 'Apparel%' THEN 'Apparel'
+					WHEN productcategory LIKE 'Infant%' THEN 'Kid''s Apparel'
+					WHEN productcategory LIKE '%Infant%' THEN 'Kid''s Apparel'
+					WHEN productcategory LIKE 'Kids%' THEN 'Kid''s Apparel'
+					WHEN productcategory LIKE '%Kid''s%' THEN 'Kid''s Apparel'
+					WHEN productcategory LIKE 'Men''s%' THEN 'Men''s Apparel'
+					WHEN productcategory LIKE '%Men''s%' THEN 'Men''s Apparel'
+					WHEN productcategory LIKE 'Toddler%' THEN 'Kid''s Apparel'
+					WHEN productcategory LIKE 'Women%' THEN 'Women''s Apparel'
+					WHEN productcategory LIKE '%Women''s' THEN 'Women''s Apparel'
+					WHEN productcategory LIKE 'Youth%' THEN 'Kid''s Apparel'
+					WHEN productcategory LIKE '%Youth''s' THEN 'Kid''s Apparel'
+					WHEN productcategory LIKE 'Headgear%' THEN 'Headgear'
+					ELSE productcategory END;
 							
 --Focusing on only cleaning categories with meaningful representation
 SELECT 	COUNT(*), productcategory 
@@ -213,21 +201,18 @@ UPDATE as_p_productcategories
 SET productcategory = CASE WHEN productcategory LIKE 'Store search results' THEN NULL
 						ELSE productcategory END;
 ```
-Answer:
-
-
-
-
-
-**Question 3: Is there any pattern in the types (product categories) of products ordered from visitors in each city and country?**
-
-
-SQL Queries:
-
-
 
 Answer:
-
+--This is query shows the total number of products ordered for each country based on product categories.
+--The US has the 9/10 products ordered in unique categories.
+SELECT	DISTINCT(country),
+		productcategory,
+		SUM(total_ordered) AS total_products_ordered  
+FROM	vas_productcategories
+WHERE	total_ordered  > 0 AND
+		productcategory IS NOT NULL
+GROUP BY country, productcategory
+ORDER BY total_products_ordered DESC
 
 
 
