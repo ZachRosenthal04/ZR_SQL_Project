@@ -70,14 +70,81 @@ ORDER	BY SUM(totaltransactionrevenue) DESC
 
 
 ###**Question 2: What is the average number of products ordered from visitors in each city and country?**
-
+Based on this table of cleaned data:
 SQL Queries:
 ```sql
 
+DROP TABLE IF EXISTS vas_productcategories;
+CREATE TEMP TABLE vas_productcategories AS (
+	SELECT	vas.fullvisitorid,
+		vas.visitid, 
+		vas.country,
+		vas.city, 
+		vas.date,
+		vas.productsku AS productsku,  
+		vas.productname AS productname, 
+		vp.total_ordered,
+		vas.productprice,
+		vas.productrevenue,
+		vas.productcategory,
+		vas.pagetitle AS page_title
+	FROM	v_all_sessions vas
+	FULL JOIN v_products vp
+	ON	vas.productsku = vp.productsku
+	WHERE	NOT(vp.total_ordered IS NULL OR
+			vas.city IS NULL AND 
+			vas.country IS NULL)
+					);
+
+UPDATE vas_productcategories
+SET productrevenue = (total_ordered * productprice);
+
+--FOR COUNTRY:
+WITH country_product_quantities_CTE AS (
+	SELECT 	country,
+		ROUND(AVG(total_ordered), 2) AS avg_products_sold,
+		RANK() OVER (
+		PARTITION BY country
+		ORDER BY AVG(total_ordered) DESC) AS rank
+	FROM	vas_productcategories
+	WHERE	productrevenue IS NOT NULL AND
+			total_ordered IS NOT NULL
+	GROUP	BY country, productcategory
+	)
+SELECT	country,
+	avg_products_sold
+FROM	country_product_quantities_CTE
+WHERE	rank = 1
+ORDER	BY avg_products_sold DESC
+LIMIT 	10;
+ 
 ```
-Answer:
+```sql
+--FOR COUNTRY:
+WITH city_product_quantities_CTE AS (
+	SELECT 	city,
+		ROUND(AVG(total_ordered), 2) AS avg_products_sold,
+		RANK() OVER (
+		PARTITION BY city
+		ORDER BY AVG(total_ordered) DESC) AS rank
+	FROM	vas_productcategories
+	WHERE	productrevenue IS NOT NULL AND
+		total_ordered IS NOT NULL
+	GROUP	BY city, productcategory
+	)
+SELECT	city,
+	avg_products_sold
+FROM	city_product_quantities_CTE
+WHERE	rank = 1
+ORDER	BY avg_products_sold DESC
+LIMIT 	10;
+###Answer:
 
+The top 5 countries with the highest average products ordered are: 
+1. Chile, 2. Italy, 3. Portugal, 4. Russia, 5. Singapore
 
+The top 5 cities (actually 6) with the highest average products ordered are all tied at 15,170.
+The cities are: Kirkland, Santa Clara, Santiago, Moscow, Council Bluffs, San Diego. 
 
 ###**Question 3: Is there any pattern in the types (product categories) of products ordered from visitors in each city and country?**
 
