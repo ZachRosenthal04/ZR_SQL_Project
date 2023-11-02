@@ -1,6 +1,6 @@
 What issues will you address by cleaning the data?
-I have been working on the project by cleaning views and temp tables rather than cleaning the db as it is so I will add all my cleaning queries here sorted by question but I will also have it in the question query area.
-My project is not complete because of MAJOR technical issues that were well beyond my control. Because of this I do not have time to format the md files. 
+
+I will be adjusting the product category column to get more manageable and insightful data. I will make views of all the original tables so that the original db is not adversely affected. I'm checking for true duplicates and getting rid of them and I am making sure that when there are products sold and a price, that product revenue is filled in. From other analysis, I noticed that the products table had more reliable data for the products sold than any other table, so I joined those two and then made a temp table to fill in the totaltransactionrevenue as the product revenue for better analysis. I right-padded 0's in both the fullvisitorid and product sku columns in all the views I made to standardize the format when applicable (i.e when the product SKU was in the 'GGOE%' format.  
 
 
 
@@ -10,7 +10,7 @@ Queries:
 ```SQL
 --Creating a view to not effect the raw db
 DROP VIEW IF EXISTS v_all_sessions;
-CREATE VIEW v_all_sessions AS ( --This ill be the copy I work on so I don't change the original db
+CREATE VIEW v_all_sessions AS ( --This will be the copy I work on so I don't change the original db
 	SELECT 	*
 	FROM	all_sessions
 		);```
