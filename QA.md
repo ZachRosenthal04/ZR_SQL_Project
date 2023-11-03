@@ -24,3 +24,26 @@ SET total_ordered = vp.total_ordered
 FROM v_products vp
 WHERE v_sales_reports.productsku = vp.productsku;
 ```
+This query finds the true duplicates and the second one removes them from the db. As I was exploring, I found that in the all_sessions table there are 5 instances (10 rows total) that have 'true duplicates'
+```sql
+
+SELECT	COUNT(*) AS count_productsku, --5 rows are 'true duplicates'
+	productsku,
+	productname,
+	visitid,
+	fullvisitorid
+FROM	v_all_sessions
+GROUP 	BY  productsku, productname, visitid, fullvisitorid
+HAVING	COUNT(*) > 1
+
+DELETE FROM v_all_sessions --removed the true duplicates from a_s_products_clean1
+WHERE visitid IN
+    (SELECT visitid
+    FROM 
+        (SELECT visitid,
+         ROW_NUMBER() OVER( 
+			 PARTITION BY productsku, productname, visitid, fullvisitorid
+        	ORDER BY  visitid ) AS row_num
+        FROM v_all_sessions ) vas
+        WHERE vas.row_num > 1 );
+```
